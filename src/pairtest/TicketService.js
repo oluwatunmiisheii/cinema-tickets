@@ -75,6 +75,10 @@ export default class TicketService {
       throw new InvalidPurchaseException(ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT);
     }
 
+    if (infants > adults) {
+      throw new InvalidPurchaseException(ERROR_MESSAGES.INFANT_TICKET_LIMIT);
+    }
+
     return {
       totalTickets: total,
       adultTickets: adults,

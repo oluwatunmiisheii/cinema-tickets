@@ -103,19 +103,21 @@ describe(`${TicketService.name}`, () => {
   describe("Ticket type dependency rules", () => {
     const error = new InvalidPurchaseException(ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT);
 
-    test("should throw if only child tickets are requested", () => {
+    test("should throw for invalid ticket type", () => {
+      expect(() =>
+        ticketService.purchaseTickets(1, new TicketTypeRequest("SENIOR", 1))
+      ).toThrow(new TypeError(ERROR_MESSAGES.INVALID_TICKET_TYPE));
+    });
+
+    test("should throw if no adult ticket is included in the purchase", () => {
       expect(() =>
         ticketService.purchaseTickets(1, new TicketTypeRequest("CHILD", 2))
       ).toThrow(error);
-    });
 
-    test("should throw if only infant tickets are requested", () => {
       expect(() =>
         ticketService.purchaseTickets(1, new TicketTypeRequest("INFANT", 1))
       ).toThrow(error);
-    });
 
-    test("should throw if only child and infant tickets are requested", () => {
       expect(() =>
         ticketService.purchaseTickets(
           1,
@@ -125,13 +127,35 @@ describe(`${TicketService.name}`, () => {
       ).toThrow(error);
     });
 
-    test("should throw for invalid ticket type", () => {
+    test("should throw if number of infant tickets exceeds number of adult tickets", () => {
       expect(() =>
-        ticketService.purchaseTickets(1, new TicketTypeRequest("SENIOR", 1))
-      ).toThrow(new TypeError(ERROR_MESSAGES.INVALID_TICKET_TYPE));
+        ticketService.purchaseTickets(
+          1,
+          new TicketTypeRequest("ADULT", 1),
+          new TicketTypeRequest("INFANT", 2)
+        )
+      ).toThrow(new InvalidPurchaseException(ERROR_MESSAGES.INFANT_TICKET_LIMIT));
     });
 
-    test("should succeed for adult and child tickets", () => {
+    test("should not throw when number of infant tickets is less than or equal to number of adult tickets", () => {
+      expect(() =>
+        ticketService.purchaseTickets(
+          1,
+          new TicketTypeRequest("ADULT", 2),
+          new TicketTypeRequest("INFANT", 1)
+        )
+      ).not.toThrow();
+
+      expect(() =>
+        ticketService.purchaseTickets(
+          1,
+          new TicketTypeRequest("ADULT", 2),
+          new TicketTypeRequest("INFANT", 2)
+        )
+      ).not.toThrow();
+    });
+
+    test("should not throw regardless of the ratio of child to adult tickets", () => {
       expect(() =>
         ticketService.purchaseTickets(
           1,
@@ -139,14 +163,12 @@ describe(`${TicketService.name}`, () => {
           new TicketTypeRequest("CHILD", 2)
         )
       ).not.toThrow();
-    });
 
-    test("should succeed for adult and infant tickets", () => {
       expect(() =>
         ticketService.purchaseTickets(
           1,
-          new TicketTypeRequest("ADULT", 1),
-          new TicketTypeRequest("INFANT", 1)
+          new TicketTypeRequest("ADULT", 2),
+          new TicketTypeRequest("CHILD", 1)
         )
       ).not.toThrow();
     });
@@ -218,7 +240,7 @@ describe(`${TicketService.name}`, () => {
       ticketService.purchaseTickets(
         1,
         new TicketTypeRequest("ADULT", 1),
-        new TicketTypeRequest("INFANT", 2)
+        new TicketTypeRequest("INFANT", 1)
       );
       expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, 1);
     });
@@ -228,7 +250,7 @@ describe(`${TicketService.name}`, () => {
         1,
         new TicketTypeRequest("ADULT", 2),
         new TicketTypeRequest("CHILD", 3),
-        new TicketTypeRequest("INFANT", 5)
+        new TicketTypeRequest("INFANT", 2)
       );
       expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, 5);
     });
@@ -251,9 +273,9 @@ describe(`${TicketService.name}`, () => {
         tickets: [
           new TicketTypeRequest("ADULT", 1),
           new TicketTypeRequest("CHILD", 3),
-          new TicketTypeRequest("INFANT", 2),
+          new TicketTypeRequest("INFANT", 1),
         ],
-        expectedPayment: (1 * TICKET_PRICES.ADULT + 3 * TICKET_PRICES.CHILD + 2 * TICKET_PRICES.INFANT),
+        expectedPayment: (1 * TICKET_PRICES.ADULT) + (3 * TICKET_PRICES.CHILD) + (1 * TICKET_PRICES.INFANT),
         expectedSeats: 1 + 3,
       },
       {
