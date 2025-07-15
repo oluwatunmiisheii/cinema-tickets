@@ -7,7 +7,6 @@ export default class TicketService {
   /**
    * Should only have private methods other than the one below.
    */
-
   #paymentService;
   #seatService;
 
@@ -16,9 +15,43 @@ export default class TicketService {
     this.#seatService = seatService;
   }
 
+
   purchaseTickets(accountId, ...ticketTypeRequests) {
-    // throws InvalidPurchaseException
     this.#validateAccountId(accountId);
+    this.#validateAndCountTickets(ticketTypeRequests);
+  }
+
+  #validateAndCountTickets(ticketTypeRequests) {
+    if (!ticketTypeRequests || ticketTypeRequests.length === 0) {
+      throw new InvalidPurchaseException("At least one ticket must be purchased");
+    }
+
+    let total = 0, adults = 0, children = 0, infants = 0;
+
+    for (const ticket of ticketTypeRequests) {
+      const type = ticket.getTicketType();
+      const count = ticket.getNoOfTickets();
+
+      total += count;
+      if (type === "ADULT") adults += count;
+      if (type === "CHILD") children += count;
+      if (type === "INFANT") infants += count;
+    }
+
+    if (total > 25) {
+      throw new InvalidPurchaseException("Cannot purchase more than 25 tickets at a time");
+    }
+
+    if ((children > 0 || infants > 0) && adults === 0) {
+      throw new InvalidPurchaseException("Child and Infant tickets cannot be purchased without an Adult ticket");
+    }
+
+    return {
+      totalTickets: total,
+      adultTickets: adults, 
+      childTickets: children,
+      infantTickets: infants
+    };
   }
 
   #validateAccountId(accountId) {
