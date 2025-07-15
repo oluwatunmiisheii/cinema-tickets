@@ -6,12 +6,12 @@ import TICKET_PRICES from "../src/pairtest/lib/ticketPrices.js";
 describe(`${TicketService.name}`, () => {
   let ticketService;
   let paymentService;
-  let reserveSeatService;
+  let seatReservationService;
 
   beforeEach(() => {
     paymentService = {makePayment: jest.fn()}
-    reserveSeatService = {reserveSeat: jest.fn()};
-    ticketService = new TicketService(paymentService, reserveSeatService);
+    seatReservationService = {reserveSeat: jest.fn()};
+    ticketService = new TicketService(paymentService, seatReservationService);
   });
   describe("Account validation", () => {
     const error = new InvalidPurchaseException(
@@ -145,11 +145,11 @@ describe(`${TicketService.name}`, () => {
   });
 
   describe("Payment calculation", () => {
-    test("should charge £25 for one adult", () => {
-      ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1));
+    test("should charge the correct amount per adult ticket", () => {
+      ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 3));
       expect(paymentService.makePayment).toHaveBeenCalledWith(
         1,
-        TICKET_PRICES.ADULT
+        TICKET_PRICES.ADULT * 3
       );
     });
 
@@ -192,16 +192,85 @@ describe(`${TicketService.name}`, () => {
     });
   });
   describe("Seat reservation", () => {
-    test.todo(
-      "reserves seats for adults and children only (infants sit on laps)"
-    );
+    test("should reserve a seat for each adult ticket purchased", () => {
+      ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1));
+      expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, 1);
+    });
 
-    test.todo("reserves no seats when only infants requested with adult");
+    test("should reserve a seat for each child ticket purchased", () => {
+      ticketService.purchaseTickets(
+        1,
+        new TicketTypeRequest("ADULT", 1),
+        new TicketTypeRequest("CHILD", 1)
+      );
+      expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, 2);
+    });
+
+    test("should not reserve seats for infant tickets", () => {
+      ticketService.purchaseTickets(
+        1,
+        new TicketTypeRequest("ADULT", 1),
+        new TicketTypeRequest("INFANT", 2)
+      );
+      expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, 1);
+    });
+
+    test("should reserve correct seats for mixed tickets", () => {
+      ticketService.purchaseTickets(
+        1,
+        new TicketTypeRequest("ADULT", 2),
+        new TicketTypeRequest("CHILD", 3),
+        new TicketTypeRequest("INFANT", 5)
+      );
+      expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, 5);
+    });
   });
 
   describe("Full ticket purchase and seat reservation flow", () => {
-    test.todo("should correctly charge and reserve seats");
+    test.each([
+      {
+        title: "2 adults, 2 children, 1 infant",
+        tickets: [
+          new TicketTypeRequest("ADULT", 2),
+          new TicketTypeRequest("CHILD", 2),
+          new TicketTypeRequest("INFANT", 1),
+        ],
+        expectedPayment: (2 * TICKET_PRICES.ADULT) + (2 * TICKET_PRICES.CHILD) + (1 * TICKET_PRICES.INFANT),
+        expectedSeats: 2 + 2,
+      },
+      {
+        title: "1 adult, 3 children, 2 infants",
+        tickets: [
+          new TicketTypeRequest("ADULT", 1),
+          new TicketTypeRequest("CHILD", 3),
+          new TicketTypeRequest("INFANT", 2),
+        ],
+        expectedPayment: (1 * TICKET_PRICES.ADULT + 3 * TICKET_PRICES.CHILD + 2 * TICKET_PRICES.INFANT),
+        expectedSeats: 1 + 3,
+      },
+      {
+        title: "3 adults only",
+        tickets: [new TicketTypeRequest("ADULT", 3)],
+        expectedPayment: (3 * TICKET_PRICES.ADULT),
+        expectedSeats: 3,
+      },
+    ])(
+      "should charge the correct amount and reserve seats for $title",
+      ({ tickets, expectedPayment, expectedSeats }) => {
+        ticketService.purchaseTickets(1, ...tickets);
+        expect(paymentService.makePayment).toHaveBeenCalledWith(1, expectedPayment);
+        expect(seatReservationService.reserveSeat).toHaveBeenCalledWith(1, expectedSeats);
+      }
+    );
 
-    test.todo("should processes payment before seat reservation");
+    test("should processes payment before seat reservation", () => {
+      ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1));
+      expect(paymentService.makePayment).toHaveBeenCalled();
+      expect(seatReservationService.reserveSeat).toHaveBeenCalled();
+      expect(paymentService.makePayment.mock.invocationCallOrder[0]).toBeLessThan(
+        seatReservationService.reserveSeat.mock.invocationCallOrder[0]
+      );
+    });
   });
 });
+
