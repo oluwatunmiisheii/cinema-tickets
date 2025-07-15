@@ -39,13 +39,25 @@ describe(`${TicketService.name}`, () => {
   });
 
   describe("Ticket quantity limits", () => {
-    test("should fail if any ticket quantity is zero", () => {
+    test("should throw for invalid request types", () => {
+      expect(() =>
+        ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1), { type: "CHILD", noOfTickets: 1 })
+      ).toThrow(new InvalidPurchaseException("Invalid ticket type request"));
+      expect(() =>
+        ticketService.purchaseTickets(1, "ADULT", new TicketTypeRequest("CHILD", 1))
+      ).toThrow(new InvalidPurchaseException("Invalid ticket type request"));
+      expect(() =>
+        ticketService.purchaseTickets(1, 123)
+      ).toThrow(new InvalidPurchaseException("Invalid ticket type request"));
+    });
+
+    test("should throw if no tickets are requested", () => {
       expect(() => ticketService.purchaseTickets(1)).toThrow(
         new InvalidPurchaseException("At least one ticket must be purchased")
       );
     });
 
-    test("should fail if any ticket quantity is negative", () => {
+    test("should throw if any ticket quantity is zero", () => {
       expect(() =>
         ticketService.purchaseTickets(
           1,
@@ -55,7 +67,7 @@ describe(`${TicketService.name}`, () => {
       ).toThrow(new Error("noOfTickets must be a positive integer"));
     });
 
-    test("should fail if ticket count is negative", () => {
+    test("should throw if ticket count is negative", () => {
       expect(() =>
         ticketService.purchaseTickets(
           1,

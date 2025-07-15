@@ -20,13 +20,18 @@ export default class TicketService {
   }
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
+    // validate account ID
     this.#validateAccountId(accountId);
+
+    // validate ticket requests and count tickets
     const { adultTickets, childTickets, infantTickets } = this.#validateAndCountTickets(ticketTypeRequests);
 
+    // calculate total amount and make payment
     const { ADULT, CHILD, INFANT } = TICKET_PRICES;
     const totalAmount = adultTickets * ADULT + childTickets * CHILD + infantTickets * INFANT;
     this.#paymentService.makePayment(accountId, totalAmount);
 
+    // reserve seats
     const totalSeats = this.#calculateTotalSeats(adultTickets, childTickets);
     this.#seatService.reserveSeat(accountId, totalSeats);
   }
@@ -44,6 +49,10 @@ export default class TicketService {
       throw new InvalidPurchaseException(
         "At least one ticket must be purchased"
       );
+    }
+
+    if (!ticketTypeRequests.every((req) => req instanceof TicketTypeRequest)) {
+      throw new InvalidPurchaseException("Invalid ticket type request");
     }
 
     let total = 0,
