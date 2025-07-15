@@ -5,6 +5,10 @@ import SeatReservationService from '../thirdparty/seatbooking/SeatReservationSer
 import {TICKET_PRICES, MAX_TICKET} from './lib/ticketConfig.js';
 import ERROR_MESSAGES from './lib/errorMessages.js';
 
+/**
+ * Service for purchasing cinema tickets, enforcing all business rules.
+ * Handles validation, payment, and seat reservation.
+ */
 export default class TicketService {
   /**
    * Should only have private methods other than the one below.
@@ -20,16 +24,25 @@ export default class TicketService {
     this.#seatService = seatService;
   }
 
+  /**
+   * Purchase tickets for a given account, enforcing all business rules.
+   *
+   * @param {number} accountId - The account ID of the purchaser (must be a positive integer).
+   * @param {...TicketTypeRequest} ticketTypeRequests - One or more TicketTypeRequest objects specifying ticket types and quantities.
+   * @throws {InvalidPurchaseException} If any business rule is violated (invalid account, ticket types, quantities, or dependencies).
+   */
   purchaseTickets(accountId, ...ticketTypeRequests) {
     // validate account ID
     this.#validateAccountId(accountId);
 
     // validate ticket requests and count tickets
-    const { adultTickets, childTickets, infantTickets } = this.#validateAndCountTickets(ticketTypeRequests);
+    const { adultTickets, childTickets, infantTickets } =
+      this.#validateAndCountTickets(ticketTypeRequests);
 
     // calculate total amount and make payment
     const { ADULT, CHILD, INFANT } = TICKET_PRICES;
-    const totalAmount = adultTickets * ADULT + childTickets * CHILD + infantTickets * INFANT;
+    const totalAmount =
+      adultTickets * ADULT + childTickets * CHILD + infantTickets * INFANT;
     this.#paymentService.makePayment(accountId, totalAmount);
 
     // reserve seats
@@ -49,7 +62,9 @@ export default class TicketService {
     }
 
     if (!ticketTypeRequests.every((req) => req instanceof TicketTypeRequest)) {
-      throw new InvalidPurchaseException(ERROR_MESSAGES.INVALID_TICKET_TYPE_REQUEST);
+      throw new InvalidPurchaseException(
+        ERROR_MESSAGES.INVALID_TICKET_TYPE_REQUEST
+      );
     }
 
     let total = 0,
@@ -68,11 +83,15 @@ export default class TicketService {
     }
 
     if (total > MAX_TICKET) {
-      throw new InvalidPurchaseException(ERROR_MESSAGES.MAX_TICKETS(MAX_TICKET));
+      throw new InvalidPurchaseException(
+        ERROR_MESSAGES.MAX_TICKETS(MAX_TICKET)
+      );
     }
 
     if ((children > 0 || infants > 0) && adults === 0) {
-      throw new InvalidPurchaseException(ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT);
+      throw new InvalidPurchaseException(
+        ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT
+      );
     }
 
     if (infants > adults) {
