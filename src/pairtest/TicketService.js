@@ -67,20 +67,20 @@ export default class TicketService {
       );
     }
 
-    let total = 0,
-      adults = 0,
-      children = 0,
-      infants = 0;
+    const ticketCount = {
+      ADULT: 0,
+      CHILD: 0,
+      INFANT: 0,
+    };
 
     for (const ticket of ticketTypeRequests) {
       const type = ticket.getTicketType();
       const count = ticket.getNoOfTickets();
 
-      total += count;
-      if (type === "ADULT") adults += count;
-      if (type === "CHILD") children += count;
-      if (type === "INFANT") infants += count;
+      ticketCount[type] += count;
     }
+
+    const total = Object.values(ticketCount).reduce((sum, count) => sum + count, 0);
 
     if (total > MAX_TICKET) {
       throw new InvalidPurchaseException(
@@ -88,21 +88,21 @@ export default class TicketService {
       );
     }
 
-    if ((children > 0 || infants > 0) && adults === 0) {
+    if ((ticketCount.CHILD > 0 || ticketCount.INFANT > 0) && ticketCount.ADULT === 0) {
       throw new InvalidPurchaseException(
         ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT
       );
     }
 
-    if (infants > adults) {
+    if (ticketCount.INFANT > ticketCount.ADULT) {
       throw new InvalidPurchaseException(ERROR_MESSAGES.INFANT_TICKET_LIMIT);
     }
 
     return {
       totalTickets: total,
-      adultTickets: adults,
-      childTickets: children,
-      infantTickets: infants,
+      adultTickets: ticketCount.ADULT,
+      childTickets: ticketCount.CHILD,
+      infantTickets: ticketCount.INFANT,
     };
   }
 
