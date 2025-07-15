@@ -1,18 +1,49 @@
 import TicketService from "../src/pairtest/TicketService.js";
+import TicketTypeRequest from "../src/pairtest/lib/TicketTypeRequest.js";
+import TicketPaymentService from "../src/thirdparty/paymentgateway/TicketPaymentService.js";
+import SeatReservationService from "../src/thirdparty/seatbooking/SeatReservationService.js";
+import InvalidPurchaseException from "../src/pairtest/lib/InvalidPurchaseException.js";
+
+jest.mock("../src/thirdparty/paymentgateway/TicketPaymentService.js");
+jest.mock("../src/thirdparty/seatbooking/SeatReservationService.js");
 
 describe(`${TicketService.name}`, () => {
+  let ticketService;
+  let mockPayment;
+  let mockSeat;
+
+  beforeEach(() => {
+    ticketService = new TicketService();
+    mockPayment = TicketPaymentService.prototype.makePayment = jest.fn();
+    mockSeat = SeatReservationService.prototype.reserveSeat = jest.fn();
+  });
   describe("Account validation", () => {
-    test.todo("should fail if account ID is zero");
+    const error = new InvalidPurchaseException("Account ID must be a valid integer greater than zero");
+    test("should throw if account ID is zero", () => {
+      expect(() =>
+        ticketService.purchaseTickets(0, new TicketTypeRequest("ADULT", 1))
+      ).toThrow(error);
+    });
+    test("should throw if account ID is negative", () => {
+      expect(() =>
+        ticketService.purchaseTickets(-5, new TicketTypeRequest("ADULT", 1))
+      ).toThrow(error);
+    });
 
-    test.todo("should fail if account ID is negative");
-
-    test.todo("should succeed for valid account ID");
+    test("should not throw for account IDs greater than zero", () => {
+      expect(() =>
+        ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1))
+      ).not.toThrow();
+      expect(() =>
+        ticketService.purchaseTickets(42, new TicketTypeRequest("ADULT", 1))
+      ).not.toThrow();
+    });
   });
 
   describe("Ticket quantity limits", () => {
-    test("should fail if no tickets are requested");
+    test.todo("should fail if no tickets are requested");
 
-    test("should fail if all ticket requests are for zero tickets");
+    test.todo("should fail if all ticket requests are for zero tickets");
 
     test.todo("should fail if ticket count is negative");
 
@@ -28,7 +59,7 @@ describe(`${TicketService.name}`, () => {
 
     test.todo("should succeed for adult and child tickets");
 
-    test.todo("should succeed for adult and infant tickets",);
+    test.todo("should succeed for adult and infant tickets");
   });
 
   describe("Payment calculation", () => {
@@ -42,7 +73,9 @@ describe(`${TicketService.name}`, () => {
   });
 
   describe("Seat reservation", () => {
-    test.todo("reserves seats for adults and children only (infants sit on laps)");
+    test.todo(
+      "reserves seats for adults and children only (infants sit on laps)"
+    );
 
     test.todo("reserves no seats when only infants requested with adult");
   });
