@@ -1,6 +1,6 @@
 import TicketTypeRequest from "../src/pairtest/lib/TicketTypeRequest";
 
-describe("TicketTypeRequest", () => {
+describe(`${TicketTypeRequest.name}`, () => {
   test("should throw for invalid ticket type", () => {
     expect(() => new TicketTypeRequest("SENIOR", 1)).toThrow(
       "type must be ADULT, CHILD, or INFANT"
@@ -21,7 +21,7 @@ describe("TicketTypeRequest", () => {
   test.each([
     ["ADULT", 2],
     ["INFANT", 0],
-    ["CHILD", 5]
+    ["CHILD", 5],
   ])(
     "should return the correct ticket type and number of tickets for type %s and count %i",
     (type, count) => {
