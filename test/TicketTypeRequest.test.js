@@ -12,15 +12,17 @@ describe(`${TicketTypeRequest.name}`, () => {
     ["float", 2.5],
     ["null", null],
     ["undefined", undefined],
+    ["negative", -1],
+    ["zero", 0],
   ])("should throw for non-integer ticket count: %s", (_, value) => {
     expect(() => new TicketTypeRequest("CHILD", value)).toThrow(
-      "noOfTickets must be an integer"
+      "noOfTickets must be a positive integer"
     );
   });
 
   test.each([
     ["ADULT", 2],
-    ["INFANT", 0],
+    ["INFANT", 1],
     ["CHILD", 5],
   ])(
     "should return the correct ticket type and number of tickets for type %s and count %i",
