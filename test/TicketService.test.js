@@ -1,21 +1,17 @@
 import TicketService from "../src/pairtest/TicketService.js";
 import TicketTypeRequest from "../src/pairtest/lib/TicketTypeRequest.js";
-import TicketPaymentService from "../src/thirdparty/paymentgateway/TicketPaymentService.js";
-import SeatReservationService from "../src/thirdparty/seatbooking/SeatReservationService.js";
 import InvalidPurchaseException from "../src/pairtest/lib/InvalidPurchaseException.js";
-
-jest.mock("../src/thirdparty/paymentgateway/TicketPaymentService.js");
-jest.mock("../src/thirdparty/seatbooking/SeatReservationService.js");
+import TICKET_PRICES from "../src/pairtest/lib/ticketPrices.js";
 
 describe(`${TicketService.name}`, () => {
   let ticketService;
-  let mockPayment;
-  let mockSeat;
+  let paymentService;
+  let reserveSeatService;
 
   beforeEach(() => {
-    ticketService = new TicketService();
-    mockPayment = TicketPaymentService.prototype.makePayment = jest.fn();
-    mockSeat = SeatReservationService.prototype.reserveSeat = jest.fn();
+    paymentService = {makePayment: jest.fn()}
+    reserveSeatService = {reserveSeat: jest.fn()};
+    ticketService = new TicketService(paymentService, reserveSeatService);
   });
   describe("Account validation", () => {
     const error = new InvalidPurchaseException(
@@ -149,15 +145,52 @@ describe(`${TicketService.name}`, () => {
   });
 
   describe("Payment calculation", () => {
-    test.todo("should charge £25 for one adult");
+    test("should charge £25 for one adult", () => {
+      ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1));
+      expect(paymentService.makePayment).toHaveBeenCalledWith(
+        1,
+        TICKET_PRICES.ADULT
+      );
+    });
 
-    test.todo("should charge £40 for one adult and one child");
+    test("should charge the correct amount for one adult and one child", () => {
+      ticketService.purchaseTickets(
+        1,
+        new TicketTypeRequest("ADULT", 1),
+        new TicketTypeRequest("CHILD", 1)
+      );
+      expect(paymentService.makePayment).toHaveBeenCalledWith(
+        1,
+        TICKET_PRICES.ADULT + TICKET_PRICES.CHILD
+      );
+    });
 
-    test.todo("should charge £25 for one adult and one infant");
+    test("should charge the correct amount for one adult and one infant", () => {
+      ticketService.purchaseTickets(
+        1,
+        new TicketTypeRequest("ADULT", 1),
+        new TicketTypeRequest("INFANT", 1)
+      );
+      expect(paymentService.makePayment).toHaveBeenCalledWith(
+        1,
+        TICKET_PRICES.ADULT + TICKET_PRICES.INFANT
+      );
+    });
 
-    test.todo("should charge correct total for mixed tickets");
+    test("should charge correct amount for mixed tickets", () => {
+      ticketService.purchaseTickets(
+        1,
+        new TicketTypeRequest("ADULT", 2),
+        new TicketTypeRequest("CHILD", 3),
+        new TicketTypeRequest("INFANT", 2)
+      );
+      const expected =
+        2 * TICKET_PRICES.ADULT +
+        3 * TICKET_PRICES.CHILD +
+        2 * TICKET_PRICES.INFANT;
+      expect(paymentService.makePayment).toHaveBeenCalledWith(1, expected);
+    });
   });
-
   describe("Seat reservation", () => {
     test.todo(
       "reserves seats for adults and children only (infants sit on laps)"

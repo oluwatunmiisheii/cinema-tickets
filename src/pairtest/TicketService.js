@@ -2,6 +2,7 @@ import TicketTypeRequest from './lib/TicketTypeRequest.js';
 import InvalidPurchaseException from './lib/InvalidPurchaseException.js';
 import TicketPaymentService from '../thirdparty/paymentgateway/TicketPaymentService.js';
 import SeatReservationService from '../thirdparty/seatbooking/SeatReservationService.js';
+import TICKET_PRICES from './lib/ticketPrices.js';
 
 export default class TicketService {
   /**
@@ -18,7 +19,13 @@ export default class TicketService {
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
     this.#validateAccountId(accountId);
-    this.#validateAndCountTickets(ticketTypeRequests);
+    const { adultTickets, childTickets, infantTickets } = this.#validateAndCountTickets(ticketTypeRequests);
+
+    const { ADULT, CHILD, INFANT } = TICKET_PRICES;
+    const totalAmount = (adultTickets * ADULT) + (childTickets * CHILD) + (infantTickets * INFANT);
+    this.#paymentService.makePayment(accountId, totalAmount);
+
+
   }
 
   #validateAndCountTickets(ticketTypeRequests) {
