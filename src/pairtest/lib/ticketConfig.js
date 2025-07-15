@@ -4,5 +4,6 @@ const TICKET_PRICES = Object.freeze({
   INFANT: 0
 });
 
-export default TICKET_PRICES;
+const MAX_TICKET = 25
 
+export { TICKET_PRICES, MAX_TICKET };

@@ -1,7 +1,8 @@
 import TicketService from "../src/pairtest/TicketService.js";
 import TicketTypeRequest from "../src/pairtest/lib/TicketTypeRequest.js";
 import InvalidPurchaseException from "../src/pairtest/lib/InvalidPurchaseException.js";
-import TICKET_PRICES from "../src/pairtest/lib/ticketPrices.js";
+import { TICKET_PRICES, MAX_TICKET } from "../src/pairtest/lib/ticketConfig.js";
+import ERROR_MESSAGES from "../src/pairtest/lib/errorMessages.js";
 
 describe(`${TicketService.name}`, () => {
   let ticketService;
@@ -14,14 +15,13 @@ describe(`${TicketService.name}`, () => {
     ticketService = new TicketService(paymentService, seatReservationService);
   });
   describe("Account validation", () => {
-    const error = new InvalidPurchaseException(
-      "Account ID must be a valid integer greater than zero"
-    );
+    const error = new InvalidPurchaseException(ERROR_MESSAGES.INVALID_ACCOUNT_ID);
     test("should throw if account ID is zero", () => {
       expect(() =>
         ticketService.purchaseTickets(0, new TicketTypeRequest("ADULT", 1))
       ).toThrow(error);
     });
+
     test("should throw if account ID is negative", () => {
       expect(() =>
         ticketService.purchaseTickets(-5, new TicketTypeRequest("ADULT", 1))
@@ -42,18 +42,20 @@ describe(`${TicketService.name}`, () => {
     test("should throw for invalid request types", () => {
       expect(() =>
         ticketService.purchaseTickets(1, new TicketTypeRequest("ADULT", 1), { type: "CHILD", noOfTickets: 1 })
-      ).toThrow(new InvalidPurchaseException("Invalid ticket type request"));
+      ).toThrow(new InvalidPurchaseException(ERROR_MESSAGES.INVALID_TICKET_TYPE_REQUEST));
+
       expect(() =>
         ticketService.purchaseTickets(1, "ADULT", new TicketTypeRequest("CHILD", 1))
-      ).toThrow(new InvalidPurchaseException("Invalid ticket type request"));
+      ).toThrow(new InvalidPurchaseException(ERROR_MESSAGES.INVALID_TICKET_TYPE_REQUEST));
+
       expect(() =>
         ticketService.purchaseTickets(1, 123)
-      ).toThrow(new InvalidPurchaseException("Invalid ticket type request"));
+      ).toThrow(new InvalidPurchaseException(ERROR_MESSAGES.INVALID_TICKET_TYPE_REQUEST));
     });
 
     test("should throw if no tickets are requested", () => {
       expect(() => ticketService.purchaseTickets(1)).toThrow(
-        new InvalidPurchaseException("At least one ticket must be purchased")
+        new InvalidPurchaseException(ERROR_MESSAGES.NO_TICKETS)
       );
     });
 
@@ -64,7 +66,7 @@ describe(`${TicketService.name}`, () => {
           new TicketTypeRequest("ADULT", 10),
           new TicketTypeRequest("CHILD", 0)
         )
-      ).toThrow(new Error("noOfTickets must be a positive integer"));
+      ).toThrow(TypeError(ERROR_MESSAGES.INVALID_TICKET_COUNT));
     });
 
     test("should throw if ticket count is negative", () => {
@@ -74,10 +76,10 @@ describe(`${TicketService.name}`, () => {
           new TicketTypeRequest("ADULT", 2),
           new TicketTypeRequest("CHILD", -1)
         )
-      ).toThrow(new Error("noOfTickets must be a positive integer"));
+      ).toThrow(TypeError(ERROR_MESSAGES.INVALID_TICKET_COUNT));
     });
 
-    test("should only allow a maximum of 25 tickets at a time", () => {
+    test(`should only allow a maximum of ${MAX_TICKET} tickets at a time`, () => {
       expect(() =>
         ticketService.purchaseTickets(
           1,
@@ -85,11 +87,7 @@ describe(`${TicketService.name}`, () => {
           new TicketTypeRequest("CHILD", 10),
           new TicketTypeRequest("INFANT", 1)
         )
-      ).toThrow(
-        new InvalidPurchaseException(
-          "Cannot purchase more than 25 tickets at a time"
-        )
-      );
+      ).toThrow(new InvalidPurchaseException(ERROR_MESSAGES.MAX_TICKETS(MAX_TICKET)));
 
       expect(() =>
         ticketService.purchaseTickets(
@@ -103,9 +101,7 @@ describe(`${TicketService.name}`, () => {
   });
 
   describe("Ticket type dependency rules", () => {
-    const error = new InvalidPurchaseException(
-      "Child and Infant tickets cannot be purchased without an Adult ticket"
-    );
+    const error = new InvalidPurchaseException(ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT);
 
     test("should throw if only child tickets are requested", () => {
       expect(() =>
@@ -132,7 +128,7 @@ describe(`${TicketService.name}`, () => {
     test("should throw for invalid ticket type", () => {
       expect(() =>
         ticketService.purchaseTickets(1, new TicketTypeRequest("SENIOR", 1))
-      ).toThrow("type must be ADULT, CHILD, or INFANT");
+      ).toThrow(new TypeError(ERROR_MESSAGES.INVALID_TICKET_TYPE));
     });
 
     test("should succeed for adult and child tickets", () => {
@@ -283,6 +279,11 @@ describe(`${TicketService.name}`, () => {
         seatReservationService.reserveSeat.mock.invocationCallOrder[0]
       );
     });
+  });
+
+  test("can construct TicketService with default dependencies", async () => {
+    const service = new (await import("../src/pairtest/TicketService.js")).default();
+    expect(service).toBeInstanceOf(TicketService);
   });
 });
 

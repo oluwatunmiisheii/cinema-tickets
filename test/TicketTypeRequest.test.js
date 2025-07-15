@@ -1,9 +1,10 @@
 import TicketTypeRequest from "../src/pairtest/lib/TicketTypeRequest";
+import ERROR_MESSAGES from "../src/pairtest/lib/errorMessages.js";
 
 describe(`${TicketTypeRequest.name}`, () => {
   test("should throw for invalid ticket type", () => {
     expect(() => new TicketTypeRequest("SENIOR", 1)).toThrow(
-      "type must be ADULT, CHILD, or INFANT"
+      TypeError(ERROR_MESSAGES.INVALID_TICKET_TYPE)
     );
   });
 
@@ -16,7 +17,7 @@ describe(`${TicketTypeRequest.name}`, () => {
     ["zero", 0],
   ])("should throw for non-integer ticket count: %s", (_, value) => {
     expect(() => new TicketTypeRequest("CHILD", value)).toThrow(
-      "noOfTickets must be a positive integer"
+      TypeError(ERROR_MESSAGES.INVALID_TICKET_COUNT)
     );
   });
 

@@ -2,7 +2,8 @@ import TicketTypeRequest from './lib/TicketTypeRequest.js';
 import InvalidPurchaseException from './lib/InvalidPurchaseException.js';
 import TicketPaymentService from '../thirdparty/paymentgateway/TicketPaymentService.js';
 import SeatReservationService from '../thirdparty/seatbooking/SeatReservationService.js';
-import TICKET_PRICES from './lib/ticketPrices.js';
+import {TICKET_PRICES, MAX_TICKET} from './lib/ticketConfig.js';
+import ERROR_MESSAGES from './lib/errorMessages.js';
 
 export default class TicketService {
   /**
@@ -38,21 +39,17 @@ export default class TicketService {
 
   #validateAccountId(accountId) {
     if (!Number.isInteger(accountId) || accountId <= 0) {
-      throw new InvalidPurchaseException(
-        "Account ID must be a valid integer greater than zero"
-      );
+      throw new InvalidPurchaseException(ERROR_MESSAGES.INVALID_ACCOUNT_ID);
     }
   }
 
   #validateAndCountTickets(ticketTypeRequests) {
     if (!ticketTypeRequests || ticketTypeRequests.length === 0) {
-      throw new InvalidPurchaseException(
-        "At least one ticket must be purchased"
-      );
+      throw new InvalidPurchaseException(ERROR_MESSAGES.NO_TICKETS);
     }
 
     if (!ticketTypeRequests.every((req) => req instanceof TicketTypeRequest)) {
-      throw new InvalidPurchaseException("Invalid ticket type request");
+      throw new InvalidPurchaseException(ERROR_MESSAGES.INVALID_TICKET_TYPE_REQUEST);
     }
 
     let total = 0,
@@ -70,16 +67,12 @@ export default class TicketService {
       if (type === "INFANT") infants += count;
     }
 
-    if (total > 25) {
-      throw new InvalidPurchaseException(
-        "Cannot purchase more than 25 tickets at a time"
-      );
+    if (total > MAX_TICKET) {
+      throw new InvalidPurchaseException(ERROR_MESSAGES.MAX_TICKETS(MAX_TICKET));
     }
 
     if ((children > 0 || infants > 0) && adults === 0) {
-      throw new InvalidPurchaseException(
-        "Child and Infant tickets cannot be purchased without an Adult ticket"
-      );
+      throw new InvalidPurchaseException(ERROR_MESSAGES.CHILD_INFANT_WITHOUT_ADULT);
     }
 
     return {
